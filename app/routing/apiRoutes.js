@@ -4,47 +4,63 @@
 
 // Dependencies
 // =============================================================
-var orm = require("../config/orm.js");
-
+const friends = require("../data/friends.js");
+const tim = 'tim';
 
 // Routes
 // =============================================================
 module.exports = function (app) {
 
-    // Search for Specific Character (or all characters) then provides JSON
-    app.get("/api/friends/:friend", function (req, res) {
+    app.get('/api/friends', function (req, res) {
+        res.json(friends);
+    })
 
+    // Search for Specific Friend then provides JSON
+    app.get("/api/friends/:friend", function (req, res) {
         // If the user provides a specific character in the URL...
         if (req.params.friend) {
-
             // Then display the JSON for ONLY that character.
-            // (Note how we're using the ORM here to run our searches)
-            orm.searchFriend(req.params.friend, function (data) {
-                res.json(data);
-            });
+            for (const friend of friends) {
+                if (friend.name === req.params.friend) {
+                    res.json(friend)
+                }
+            }
+            // console.log(friends);
+            console.log('hello');
         }
-
-        // Otherwise...
-        else {
-            // Otherwise display the data for all of the characters.
-            // (Note how we're using the ORM here to run our searches)
-            orm.allFriends(function (data) {
-                res.json(data);
-            });
-        }
-
     });
 
     // If a user sends data...
     app.post("/api/friends", function (req, res) {
 
+        console.log('hello from post');
         // Take the request...
-        var friends = req.body;
+        const newFriend = req.body;
+        const newName = newFriend.name;
+        const newPhoto = newFriend.photo;
+        const newScores = newFriend.scores;
+        var bestMatch = {
+            name: "",
+            photo: "",
+            difference: 999
+        };
 
-        // Then send it to the ORM to "save" into the DB.
-        orm.addFriend(friends, function (data) {
-            console.log(data);
-        });
+        for (const friend of friends) {
+            let difference = 0;
 
+
+            for (let i = 0; i < friend.scores.length; i++) {
+                difference += Math.abs(friend.scores[i] - newScores[i]);
+            }
+
+            if (difference < bestMatch.difference) {
+                bestMatch.name = friend.name;
+                bestMatch.photo = friend.photo;
+                bestMatch.difference = difference;
+            }
+        }
+
+        res.json({ bestMatch });
     });
+
 };
